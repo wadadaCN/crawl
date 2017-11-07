@@ -1,3 +1,7 @@
+# code = python3
+# encoding = utf-8
+# wrote by Xie on 2017/11/7
+
 import requests
 from lxml import etree
 from time import sleep
