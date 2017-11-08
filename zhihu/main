@@ -1,45 +1,23 @@
 # code = python3
 # encoding = utf-8
 # wrote by Xie on 2017/11/7
-# no proxies, one user's follows.
+# proxies, all users' follows.
 
 import requests
 import re
-import redis
 from time import sleep
 
-def get_redis():
-    try:
-        r = redis.Redis(host='localhost', port=6379, db=0)
-        print("成功连接redis数据库！")
-        return r
-    except:
-        print('redis数据库连接失败！')
-
-def ipTest(redis):
-    testURL = 'https://www.zhihu.com/'
-    while 1:
-        ip = redis.spop('ip_list').decode('utf-8')
-        if ip[4] == 's':
-            proxy = {'https': ip}
-        else:
-            proxy = {'http': ip}
-        try:
-            r = requests.get(testURL,proxies = proxy, timeout=2, headers=headers)
-            if r.status_code == 200:
-                return proxy
-        except:
-            print("%s无效"%proxy)
+from getProxies import redisCLI,ipTest,get66ip
+from nosql_redis import redis2csv
 
 headers = {
 'authorization':'Bearer Mi4xcEpzcUFBQUFBQUFBRUVKVmJTSkhEQmNBQUFCaEFsVk5pUEVMV2dEcUFKV0xaQUp5QW9Talg5WlRtbV9nM1NTSk1R|1508140168|a5cc04d035818b42b088adfa011750eca648bcdc',
 'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.75 Safari/537.36',
 }
 
-def main(infoList,userToken,proxy,r):
+def main(userToken,proxy,r):
     url = "https://www.zhihu.com/api/v4/members/{}/followees?include=data%5B*%5D.answer_count%2Carticles_count%2Cgender%2Cfollower_count%2Cis_followed%2Cis_following%2Cbadge%5B%3F(type%3Dbest_answerer)%5D.topics&offset=0&limit=20".format(userToken)
     offset = 0
-    userTokenList = []
     while 1:
         response = ""
         try:
@@ -61,27 +39,31 @@ def main(infoList,userToken,proxy,r):
             url_token = userItem['url_token']
             id = userItem['id']
             info = "{0},{1},{2},{3},{4},{5},{6}\n".format(name,headline,answer_count,articles_count,follower_count,url_token,id)
-            infoList.append(info)
-            userTokenList.append(url_token)
+            if not r.sismember('visited',url_token):
+                r.sadd('info_list',info)
+                r.sadd('user_list',url_token)
+
         if offset < totalFollower:
             offset += 20
             url = "https://www.zhihu.com/api/v4/members/{}/followees?include=data%5B*%5D.answer_count%2Carticles_count%2Cgender%2Cfollower_count%2Cis_followed%2Cis_following%2Cbadge%5B%3F(type%3Dbest_answerer)%5D.topics&offset={}&limit=20".format(userToken, offset)
         else:
-            return userTokenList
+            break
 
 
 if __name__ == '__main__':
+    # get66ip()
     startUserToken = 'zhang-jia-wei'
     info = "用户名,简介,回答数,文章数,粉丝数,用户唯一认证,id\n"
-    infoList = []
-    infoList.append(info)
-    r = get_redis()
-    proxy = ipTest(r)
-    userList = main(infoList, startUserToken, proxy, r)
-    for user in userList:
-        main(infoList, user, proxy, r)
+    proxy = ipTest(redisCLI)
+    main(startUserToken, proxy, redisCLI)
+    while 1:
         sleep(3)
-    infoList = list(set(infoList))
-    with open('data.txt', 'w') as file:
-        for item in infoList:
-            file.write(item)
+        try:
+            userToken = redisCLI.spop('user_list')
+            if not redisCLI.sismember('visited',userToken):
+                redisCLI.sadd('visited',userToken)
+                userToken = userToken.decode() #将bytes对象转换为str对象
+                main(userToken, proxy, redisCLI)
+        except:
+            break
+    redis2csv(info,'visited')
