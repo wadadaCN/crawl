@@ -33,18 +33,22 @@ def get66ip():
 def ipTest(redis):
     testURL = 'https://www.zhihu.com/'
     while 1:
-        ip = redis.spop('ip_list').decode('utf-8')
-        if ip[4] == 's':
-            proxy = {'https': ip}
+        ip = redis.spop('ip_list')
+        if ip != None:
+            ip = ip.decode()
+            if ip[4] == 's':
+                proxy = {'https': ip}
+            else:
+                proxy = {'http': ip}
+            try:
+                r = requests.get(testURL,proxies = proxy, timeout=2, headers=headers)
+                if r.status_code == 200:
+                    return proxy
+            except:
+                print("%s无效"%proxy)
         else:
-            proxy = {'http': ip}
-        try:
-            r = requests.get(testURL,proxies = proxy, timeout=2, headers=headers)
-            if r.status_code == 200:
-                return proxy
-        except:
-            print("%s无效"%proxy)
+            get66ip()
 
 if __name__ == '__main__':
-    get66ip()
-    # ipTest(redisCLI)
+    # get66ip()
+    ipTest(redisCLI)
