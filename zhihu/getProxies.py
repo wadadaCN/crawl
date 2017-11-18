@@ -82,7 +82,7 @@ def ipTest(redis):
     count = 0
     while count < 5:
         ip = redis.spop('ip_list')
-        funcList = ['get66ip()', 'getxici()'] #代理站点池
+        funcList = ['get66ip()', 'getxici()']
         if ip != None:
             ip = ip.decode()
             if ip[4] == 's':
@@ -100,9 +100,10 @@ def ipTest(redis):
                 try:
                     eval(func)
                     break
-                except ConnectionError: #遇到连接错误则切换代理站点
+                except ConnectionError:
+                    count += 1
                     continue
-        count += 1
+
     print('所有代理站点不可用！')
     raise ConnectionError
 
