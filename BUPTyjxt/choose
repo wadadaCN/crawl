@@ -1,0 +1,21 @@
+# 2018.1.11
+
+import requests
+from lxml import etree
+from sign_up import headers1,username,status
+
+def getScrore():
+    url = 'http://yjxt.bupt.edu.cn/Gstudent/Course/StudentScoreQuery.aspx?EID=l3PZkHTW3Su1WxpIyiJt7xg!oXf-MKDVwRsqQS-VmXPTktNXfJg51w==&UID={0}'.format(username)
+    r = requests.get(url, headers=headers1)
+    tree = etree.HTML(r.text)
+    scoresInfo = tree.xpath("//table[@class='Grid_Line']")[0]
+    tr = scoresInfo.xpath(".//tr")
+    for i in range(1,len(tr)):
+        result = tr[i].xpath(".//td[2]/text()")[0] + ' ' + tr[i].xpath(".//td[7]/text()")[0]
+        print(result)
+
+if __name__ == '__main__':
+    if status:
+        getScrore()
+    else:
+        print("can't login")
