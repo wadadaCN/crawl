@@ -1,0 +1,1 @@
+sign_up用来登录教务获取cookie，choose用来选择登录后的进一步操作。
